@@ -5,6 +5,7 @@ import math
 import sys
 import time
 
+from rag_pipeline.cli import run_cli
 from rag_pipeline.config import Settings
 from rag_pipeline.embeddings.embedding_service import (
     EmbeddingService,
@@ -64,4 +65,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run_cli(main))

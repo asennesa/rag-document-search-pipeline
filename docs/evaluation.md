@@ -76,22 +76,24 @@ Correctness is judged by a reviewer, not by string comparison, using this rubric
 or wrong, 1 is partially supported or missing part of the reference, 2 is fully supported.
 Without judgments the metric is N/A. Reports name the reviewer.
 
-The current scores come from the **implementing agent, not a human**, and are not an independent
-evaluation.
+The project owner delegated this review to the implementing agent. **No human reviewed these
+answers**, so the scores are not an independent evaluation. Each answer was read against its
+reference, and its facts were checked against the text of the documents it cited.
 
 | Score | Count |
 |---|---|
-| 2, fully supported | 20 of 25 |
-| 1, partially supported | 5 of 25 |
+| 2, fully supported | 18 of 25 |
+| 1, partially supported | 7 of 25 |
 | 0, unsupported or wrong | 0 of 25 |
-| Mean | 1.8 of 2 |
+| Mean | 1.72 of 2 |
 
-The five partial scores: three omitted a condition or detail in the reference, one answered with
-only “IT”, and one was correct but did not cite the document its claim came from. **That last
-case had valid citations, which shows why validity is not correctness:** a metric of 100% still
-missed a claim its cited source did not support.
+No answer contained a wrong fact: every number appeared in the cited documents. The seven partial
+scores are strict: five omitted a condition or detail in the reference, one answered with only
+“IT”, and one was correct but did not cite the document its claim came from. **That last case had
+valid citations, which shows why validity is not correctness:** a metric of 100% still missed a
+claim its cited source did not support.
 
-Failures are assigned to the earliest stage: retrieval, context omission, or generation. All five
+Failures are assigned to the earliest stage: retrieval, context omission, or generation. All seven
 partial answers were generation issues, since the required evidence reached the model.
 
 ## Vector benchmark

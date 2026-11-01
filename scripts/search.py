@@ -7,6 +7,7 @@ import argparse
 import sys
 import textwrap
 
+from rag_pipeline.cli import run_cli
 from rag_pipeline.config import Settings
 from rag_pipeline.errors import PipelineError
 from rag_pipeline.logging_config import configure_logging
@@ -56,4 +57,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run_cli(main))

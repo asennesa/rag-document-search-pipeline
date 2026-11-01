@@ -11,6 +11,7 @@ from rag_pipeline.assets import (
     resolve_embedding_tokenizer,
     resolve_generation_tokenizer,
 )
+from rag_pipeline.cli import run_cli
 from rag_pipeline.config import Settings
 from rag_pipeline.errors import PipelineError
 
@@ -61,4 +62,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run_cli(main))

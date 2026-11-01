@@ -1,7 +1,7 @@
 # PLANS.md — RAG Document Search Pipeline
 
 > Phase 0 architecture and implementation roadmap, researched **2026-10-31** and approved by the user in the subsequent review.
-> **Phase 1 execution is authorized** by the user's “Begin” response to the Phase 1 scope review. Phases 2 through 8 were authorized by the user on 2026-11-01. Stop at the Phase 8 boundary; Phase 9 requires separate approval. GNU AGPL v3 has been selected under the user's delegated license choice. Specification edits remain unauthorized. The user authorized local commits of Phases 0–6 and Phase 7 on 2026-11-01; later commits need a new request, and pushing remains unauthorized.
+> **Phase 1 execution is authorized** by the user's “Begin” response to the Phase 1 scope review. Phases 2 through 9 were authorized by the user on 2026-11-01. All nine phases are implemented; Phase 9 has one open check, listed in Section 22. GNU AGPL v3 has been selected under the user's delegated license choice. Specification edits remain unauthorized. The user authorized local commits of Phases 0–6, 7, and 8 on 2026-11-01; later commits need a new request, and pushing remains unauthorized.
 > “Verified” for Phase 0 means the planning deliverables and documentary checks are complete. It does not mean the proposed software stack has been installed, resolved into a lockfile, or tested together.
 
 ## 1. Authority, scope, and progress
@@ -27,8 +27,8 @@ Each later phase follows: restate scope, deliverables, acceptance criteria, and 
 | 5 | Semantic search | Verified | 8 paraphrases in Top-5 on real Qdrant; filters; Ollama unreachable and never imported; 301 unit and 53 integration tests; ranking weakness recorded; evidence in Section 17 |
 | 6 | RAG with Ollama | Verified | Real Qwen generation on Ollama 0.40.13: 15 reviewed questions, exact token counts, live refusal, injection, and failure statuses; 464 tests, 0 skipped; evidence in Sections 18 and 19 |
 | 7 | Streamlit application | Verified | 449 unit tests including AppTest; 23 live browser scenarios on real services; real Qdrant and Ollama outages; screenshots from the running app; evidence in Section 20 |
-| 8 | Evaluation and benchmarking | Blocked | All measurements complete; the one open check is the required human correctness review, since scores so far are agent-reviewed; evidence in Section 21 |
-| 9 | Integration, CI/CD, and GitHub documentation | Not started | Clean setup, full workflow evidence, CI, documentation, and publication review |
+| 8 | Evaluation and benchmarking | Verified | All measurements complete; correctness scored by the agent under the owner's delegation, replacing human review, and labeled that way; evidence in Sections 21 and 23 |
+| 9 | Integration, CI/CD, and GitHub documentation | Blocked | Clean-copy reproduction, 635 tests, Ubuntu 24.04 CI steps on two architectures, documentation, and publication review complete; a real GitHub Actions run needs an authorized push; evidence in Section 22 |
 
 Statuses are `Not started`, `In progress`, `Blocked`, and `Verified`. Missing infrastructure or model artifacts must be recorded as `Blocked` or `Not run` for the affected check. Mocked tests do not substitute for required real integration acceptance. An optional benchmark can report an honest limitation, but cannot report an unmeasured speedup.
 
@@ -833,7 +833,7 @@ The AGPL license was retrieved verbatim from
 | `docker compose config --quiet`; `docker compose up -d qdrant` | Configuration valid; native ARM64 image pulled; project network, named volume and container created |
 | `curl -fsS --connect-timeout 2 --max-time 5 --retry 5 --retry-connrefused --retry-delay 1 http://127.0.0.1:6333/readyz` | `all shards are ready` |
 | `curl -fsS --max-time 5 http://127.0.0.1:6333/` | Qdrant 1.20.0, commit `222b2e44ab1c3f17e8246396ead6558e45041df7` |
-| `curl -fsS --max-time 5 -o /private/tmp/rag-qdrant-dashboard.html -w '\nDashboard HTTP %{http_code}\n' http://127.0.0.1:6333/dashboard` | HTTP 200; HTML title `UI \| Qdrant`; browser interaction not tested |
+| `curl -fsS --max-time 5 -o <temporary file> -w '\nDashboard HTTP %{http_code}\n' http://127.0.0.1:6333/dashboard` | HTTP 200; HTML title `UI \| Qdrant`; browser interaction not tested |
 | `docker compose images`; `docker image inspect qdrant/qdrant:v1.20.0 --format '{{.Architecture}} {{json .RepoDigests}}'` | linux/arm64; digest recorded below |
 | `docker inspect rag-document-search-pipeline-qdrant-1 --format '{{json .Mounts}} {{json .HostConfig.PortBindings}}'` | Named volume `rag-document-search-pipeline_qdrant_data` mounted read/write at `/qdrant/storage`; only host `127.0.0.1:6333` published |
 | `docker compose exec -T qdrant sh -c 'command -v curl; command -v wget; exit 0'` | Neither probe binary found; use the verified host readiness command |
@@ -1474,3 +1474,108 @@ not cover filtered search. Agent scoring is not independent, and it reviewed one
 
 Nothing was pushed. The user then asked to continue to Phase 9 without completing or waiving this
 review, so this phase stays Blocked until one of those happens.
+
+## 22. Phase 9 verification log and project record
+
+**Status: Blocked on one check.** On 2026-11-01 the user said “commit and go phase 9”. Everything
+that can be done locally is complete. A workflow file is not evidence that GitHub Actions ran, and
+pushing is not authorized, so remote CI is **Not run**. Phase 8's review question was open at this
+point and was resolved by delegation; see Section 23.
+
+Commit before this phase: `a17e73a` (Phase 8), on `feature/rag-pipeline-foundation`. This phase is
+not committed, because that request covered Phase 8. Nothing has been pushed.
+
+Files created: `.github/workflows/ci.yml`, `src/rag_pipeline/cli.py`, `tests/unit/test_cli.py`,
+`tests/integration/test_end_to_end.py`, `docs/architecture.md`, `docs/testing.md`,
+`docs/interview_walkthrough.md`. Updated all eight scripts, `tests/unit/test_synchronization.py`,
+`README.md`, `docs/engineering_decisions.md`, and `PLANS.md`. A separate optional integration workflow
+was not needed; `ci.yml` has a Qdrant job.
+
+Pinned CI: `actions/checkout` v7.0.1 at `3d3c42e5aac5ba805825da76410c181273ba90b1`,
+`astral-sh/setup-uv` v10.3.3 at `68559e99cc807c1eb7e9238fd43a15bba460eec2`, uv 0.13.6, `ubuntu-24.04`,
+Qdrant `v1.20.0` by image digest. Permissions are `contents: read`, and checkout credentials are not
+persisted. No Ollama model is downloaded in CI.
+
+### Defects found in this phase
+
+| Finding | How found | Resolution |
+|---|---|---|
+| Invalid configuration printed a raw traceback from every script | Real CLI run | Shared `run_cli`; names the setting, never its value |
+| `inspect_index.py` ignored `--help` and ran | Help test | Added an argument parser |
+| One Mermaid sequence diagram failed to parse | Rendering it; a semicolon ends a line there | Rewritten. Phase 0's “no renderer run” gap is now closed |
+| The permission test would fail as root | Reviewing the Linux run plan | Skipped for root; CI steps run as a non-root user |
+| One private temporary path in this file | Publication scan | Removed |
+
+### Verification
+
+| Command / check | Observed result |
+|---|---|
+| `uv run --locked pytest` | **537 passed** |
+| `uv run --locked pytest tests/integration` | **98 passed, 0 skipped** |
+| `uv run --locked pytest tests/unit tests/integration` | **635 passed, 0 skipped**, with live Qdrant and Ollama |
+| `uv lock --check`; `ruff check .`; `ruff format --check .`; `git diff --check` | All passed |
+| Clean copy on macOS with no `.venv` or caches: `uv sync --locked`; assets downloaded again | Installed; `model_assets.json` byte-identical, so hashes reproduced |
+| Same copy: ingest twice, inspect, search, ask, retrieval and RAG evaluation, benchmark | 12 synced, then 12 unchanged; 24 points; **point ID digest identical to the application collection from a different path**; retrieval and RAG evaluation matched Section 21 (20 answered, 5 refused, 26/26 citations) |
+| Benchmark repeated with the same seed | Exact mean 2.31 ms vs 2.18 ms; `hnsw_ef` 256 recall 0.873 vs 0.867. Vectors are seeded, but index construction is not exactly repeatable |
+| Ubuntu 24.04, `linux/arm64`, non-root, with exact CI steps | `uv sync --locked`, lock, Ruff, **537 unit passed**, pinned-digest Qdrant, **11 passed** |
+| Ubuntu 24.04, `linux/amd64`, same steps | **537 unit passed, 11 passed** |
+| `actionlint` on the workflow; action inputs read from the pinned commits | Passed |
+| All 5 Mermaid diagrams rendered with mermaid-cli and Chrome | 5 rendered with no syntax errors, after the fix above |
+| Link and anchor check on README and docs | 0 broken |
+| Scan of tracked and new files for secrets, private paths, forbidden files | None after the fix above. Largest file is `uv.lock`; the only binaries are 3 screenshots |
+| Every CLI `--help`; failure cases through real CLIs | Passed: outage, invalid configuration, corrupt file, missing assets, dimension mismatch, changed chunking, context overflow; bad citations are covered by unit tests |
+| Temporary mutation of 2 `run_cli` safeguards, passing 537-test baseline | Both caught |
+| `/collections`; `scripts/inspect_index.py` afterwards | Only `document_embeddings`; 24 points; ID digest unchanged since Phase 4 |
+
+Containers emulate the runner, and they are not GitHub Actions. They also run the Qdrant job through
+a container network instead of a service port mapping. The browser scenarios were not repeated in
+this phase: `tests/integration/test_end_to_end.py` covers the app through AppTest on real services,
+and the only change touching app paths was the CLI wrapper, which the app does not use.
+
+### Specification §22 definition of done
+
+| Item | State |
+|---|---|
+| Repository installs; Docker Compose starts Qdrant | Verified, including a clean copy |
+| Sample documents ingested; chunking; embeddings validated; vectors persisted | Verified |
+| Collection and index settings inspectable; repeated ingestion idempotent; updates synchronize | Verified |
+| Semantic Search; RAG uses passages; citations validated; Streamlit supports both modes | Verified |
+| Evaluation runs; benchmark works and reports its limits | Verified; correctness agent-reviewed by delegation (Section 23) |
+| Tests and Ruff pass | Verified |
+| GitHub Actions configured | Configured and checked locally; **remote run Not run** |
+| README documents verified commands | Verified |
+| Suitable for public GitHub publication | Local review passed; the user decides whether to publish |
+
+To close the open check:
+
+**Remote CI:** with authorization, commit and push the branch, then confirm both jobs on GitHub.
+
+**Limits:** The full model workflow ran only on macOS ARM64; Linux coverage is lint, unit, and Qdrant
+tests. Interruption was simulated, never tested by killing a live process. Evaluation limits in
+Section 21 stand. The specification's proposed edits in Section 11 remain unapplied.
+
+## 23. Phase 8 review decision
+
+On 2026-11-01 the user said “i want you to do the human review”. The implementing agent is not a
+human, so this cannot meet the plan's human-review wording. Under the authority order, the current
+user request overrides the plan, so it is recorded as a **delegation of the review to the agent**.
+Phase 8 is Verified on that basis. Results stay labeled agent-reviewed and are not independent.
+
+The review covered the run in `rag-20261101T122541Z.json`. A scripted check compared every number and
+content word in each answer with the text of its cited documents, and each answer was reread against
+its reference. All numbers appeared in the cited documents. Word mismatches were paraphrase, except
+m05, which was already scored 1. All 5 refusals were correct: “parental leave” appears once in the
+corpus, without a pay rate.
+
+The pass found an inconsistency in the first agent scoring. Omissions from the reference had scored 1
+on s05, s08, and s09 but 2 on m03 and m04. Both were lowered to 1, because the rubric applies
+equally and “one-time” is material.
+
+| Score | First pass | Final |
+|---|---|---|
+| 2, fully supported | 20 | **18** |
+| 1, partially supported | 5 (s05, s08, s09, p02, m05) | **7** (adds m03, m04) |
+| 0, unsupported or wrong | 0 | **0** |
+| Mean | 1.8 | **1.72** |
+
+This revision supersedes the first-pass scores in Section 21. The 128/24 run remains unscored.

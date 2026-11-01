@@ -1,4 +1,17 @@
-# Foundation decisions
+# Engineering decisions
+
+## Technology choices
+
+| Choice | Why | Alternatives considered |
+|---|---|---|
+| Qdrant | Explicit HNSW settings, payload filters, Query API, simple local service | pgvector, FAISS (a library with no payload store or service) |
+| FastEmbed, BGE small | Local CPU inference and a small English model | sentence-transformers (needs PyTorch), paid APIs (not local) |
+| Ollama, Qwen 4B | Native Apple Silicon inference with a small instruction model | llama.cpp directly, cloud LLMs (not local-first) |
+| PyMuPDF | Reliable text and page extraction | pypdf; PyMuPDF's AGPL license is accepted, and the project uses it too |
+| No LangChain or LlamaIndex | Every step stays visible and testable | Frameworks would hide the steps this project exists to show |
+| uv | Fast, locked, reproducible environments | pip-tools, Poetry |
+
+## Foundation decisions (Phase 1)
 
 Phase 1 creates a Python package, configuration/error/logging foundations, tests,
 and a single local Qdrant service. It does not implement pipeline stages.
@@ -151,6 +164,8 @@ See [ingestion and chunking](ingestion.md) for behavior and limitations.
 
 - 256/40 stays the default. Smaller chunks ranked better but lost a document, which caused a
   wrongful refusal. A chunk retrieved at rank 5 can still be used; a missed one cannot.
+- The plan required human correctness review. The project owner delegated it to the implementing
+  agent instead, so scores stay labeled as agent-reviewed and are not independent.
 - Correctness comes from reviewer scores that name the reviewer. String comparison would look
   objective while measuring wording.
 - Citation validity is computed over emitted references and is None with no references, so zero
@@ -158,6 +173,15 @@ See [ingestion and chunking](ingestion.md) for behavior and limitations.
 - Percentiles use nearest rank, so each reported latency was actually observed.
 - A benchmark that fails its readiness gate returns a diagnostic and no timings.
 - The benchmark uses a `full_scan_threshold` of 10 KB, Qdrant's minimum, instead of the planned 1.
+
+## Delivery decisions (Phase 9)
+
+- Actions are pinned to full commit SHAs, and Qdrant to an image digest, because tags can move.
+- CI has read-only permissions and does not persist checkout credentials.
+- CI covers lint, unit tests, and real Qdrant with synthetic vectors. Model tests stay local, to
+  avoid downloads on every run.
+- All scripts share `run_cli`, so failures are short messages. Configuration errors name the setting
+  and never its value, which could be a secret.
 
 Exact observed versions, infrastructure evidence, commands, and remaining limits
 are recorded in the Phase 1 completion record in [PLANS.md](../PLANS.md).

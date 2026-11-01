@@ -10,6 +10,7 @@ from functools import partial
 from pathlib import Path
 
 from rag_pipeline.assets import embedding_assets_id, resolve_embedding_tokenizer
+from rag_pipeline.cli import run_cli
 from rag_pipeline.config import Settings
 from rag_pipeline.embeddings.embedding_service import load_embedding_service
 from rag_pipeline.errors import PipelineError
@@ -173,4 +174,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run_cli(main))

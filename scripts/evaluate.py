@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from rag_pipeline.assets import embedding_assets_id, resolve_embedding_tokenizer
+from rag_pipeline.cli import run_cli
 from rag_pipeline.config import Settings
 from rag_pipeline.errors import EvaluationError, PipelineError
 from rag_pipeline.evaluation.dataset import (
@@ -204,4 +205,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run_cli(main))

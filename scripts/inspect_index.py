@@ -1,14 +1,17 @@
 """Show observed collection and index state. This reads only; it never changes anything."""
 
+import argparse
 import hashlib
 import sys
 
+from rag_pipeline.cli import run_cli
 from rag_pipeline.config import Settings
 from rag_pipeline.errors import PipelineError
 from rag_pipeline.vector_store.qdrant_store import connect_store, interpret_index
 
 
 def main() -> int:
+    argparse.ArgumentParser(description=__doc__).parse_args()
     settings = Settings()
     try:
         store = connect_store(settings)
@@ -45,4 +48,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run_cli(main))

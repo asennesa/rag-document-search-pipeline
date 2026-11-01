@@ -1,3 +1,4 @@
+import os
 import stat
 
 import pytest
@@ -419,6 +420,7 @@ def test_missing_root_stops_before_any_store_access(tmp_path, fake_tokenizer, st
     assert store.calls == []
 
 
+@pytest.mark.skipif(os.geteuid() == 0, reason="root ignores directory permissions")
 def test_unreadable_folder_stops_inventory_instead_of_being_skipped(root):
     locked = root / "locked"
     locked.mkdir()

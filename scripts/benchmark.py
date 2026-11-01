@@ -15,6 +15,7 @@ from pathlib import Path
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import ApiException
 
+from rag_pipeline.cli import run_cli
 from rag_pipeline.config import Settings
 from rag_pipeline.errors import PipelineError
 from rag_pipeline.evaluation.benchmark import BenchmarkConfig, run_benchmark
@@ -104,4 +105,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run_cli(main))
