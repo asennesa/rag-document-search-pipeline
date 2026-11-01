@@ -147,5 +147,17 @@ See [ingestion and chunking](ingestion.md) for behavior and limitations.
 - Files are validated from a hidden temporary path before being moved into place, so a
   rejected upload leaves nothing behind.
 
+## Evaluation decisions (Phase 8)
+
+- 256/40 stays the default. Smaller chunks ranked better but lost a document, which caused a
+  wrongful refusal. A chunk retrieved at rank 5 can still be used; a missed one cannot.
+- Correctness comes from reviewer scores that name the reviewer. String comparison would look
+  objective while measuring wording.
+- Citation validity is computed over emitted references and is None with no references, so zero
+  citations cannot appear as 100%.
+- Percentiles use nearest rank, so each reported latency was actually observed.
+- A benchmark that fails its readiness gate returns a diagnostic and no timings.
+- The benchmark uses a `full_scan_threshold` of 10 KB, Qdrant's minimum, instead of the planned 1.
+
 Exact observed versions, infrastructure evidence, commands, and remaining limits
 are recorded in the Phase 1 completion record in [PLANS.md](../PLANS.md).

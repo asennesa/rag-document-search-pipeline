@@ -36,7 +36,7 @@ float32 vector takes 1,536 bytes, so the default 20,000 KB threshold means about
 vectors per segment before graph data and payload overhead.
 
 These defaults (`m=16`, `ef_construct=100`, `hnsw_ef=128`) are starting values, not tuned
-results. Measurements belong to the separate benchmark in Phase 8.
+results.
 
 ## What this project's collection actually does
 
@@ -108,6 +108,53 @@ look deleted. A file that exists but fails to parse is not treated as missing.
 
 A file lock allows one writer per collection on one host. The operating system releases it
 if the process dies. It does not coordinate different machines.
+
+## Benchmark results
+
+`scripts/benchmark.py` runs in its own `rag_benchmark_<run_id>` collection, which it creates and
+removes, and needs no models. Vectors are synthetic, normalized, 384-dimensional, and seeded. The
+100 queries are held out, and all modes use the same ones. Vectors load with indexing disabled,
+then indexing is enabled, and timing starts only once at least 95% of vectors are indexed. If that
+never happens, the run reports a diagnostic and no timings. Each mode gets 20 warmup queries and
+3 repetitions, with mode order rotated. Exact results are the ground truth for recall.
+
+Measured with Qdrant 1.20.0 in Docker on an Apple M4 Pro, one serial client, seed 42, Top-10:
+
+| Points | Mode | Recall@10 | Mean | p50 | p95 |
+|---|---|---|---|---|---|
+| 10,000 | exact | 1.000 | 2.18 ms | 2.06 ms | 3.33 ms |
+| 10,000 | `hnsw_ef` 32 | 0.296 | 2.12 ms | 2.11 ms | 3.08 ms |
+| 10,000 | `hnsw_ef` 64 | 0.476 | 2.20 ms | 2.13 ms | 3.15 ms |
+| 10,000 | `hnsw_ef` 128 | 0.674 | 2.37 ms | 2.31 ms | 3.27 ms |
+| 10,000 | `hnsw_ef` 256 | 0.867 | 2.69 ms | 2.68 ms | 3.66 ms |
+| 50,000 | exact | 1.000 | 3.89 ms | 3.74 ms | 5.07 ms |
+| 50,000 | `hnsw_ef` 32 | 0.085 | 2.15 ms | 2.14 ms | 3.05 ms |
+| 50,000 | `hnsw_ef` 64 | 0.153 | 2.44 ms | 2.43 ms | 3.41 ms |
+| 50,000 | `hnsw_ef` 128 | 0.265 | 2.88 ms | 2.86 ms | 3.94 ms |
+| 50,000 | `hnsw_ef` 256 | 0.412 | 3.89 ms | 3.71 ms | 4.78 ms |
+
+Both runs reached 100% indexed vectors across 2 segments, with upload taking 1.3 s and 5.9 s, and
+index readiness wall time of 1.0 s and 5.1 s. Readiness time is not isolated graph construction
+time, and it is limited by the one-second polling interval.
+
+**HNSW did not win here, and these numbers should not be read as its real-world performance.**
+
+- At 10,000 points, exact search is already about 2 ms, so there is no speed to gain.
+- At 50,000 points, HNSW was up to 45% faster, but only at 8.5% recall. At its best recall of 41%,
+  it was no faster than exact search.
+- Random high-dimensional vectors are a known hard case for graph indexes, because every point
+  is nearly equally far from every other. Real text embeddings have structure, so this benchmark
+  gives no estimate of recall on them.
+- The trend is the useful part: exact latency rose 78% from 10,000 to 50,000 points, while
+  `hnsw_ef` 32 stayed nearly flat (2.12 to 2.15 ms). Higher settings cost more: `hnsw_ef` 256 rose
+  from 2.69 to 3.89 ms. Recall rose with `hnsw_ef` and fell as the data grew.
+
+Recall changing with `hnsw_ef` indicates the graph was used, since exact search would not vary.
+This remains evidence about the runs as a whole, not proof about any single query. Application
+data needs no index at this size: exact search is both accurate and fast.
+
+Container memory from `docker stats` was about 0.95 GiB after indexing in both runs. That reading
+is the container's own figure, taken at one moment, not a measure of index size.
 
 ## Known limitations
 

@@ -3,10 +3,10 @@
 A local Python portfolio project for explicit document embeddings, Qdrant vector
 indexing, semantic retrieval, and Ollama generation with source citations.
 
-**Current scope: Phases 1-7.** Documents flow from files through chunking and validated
+**Current scope: Phases 1-8.** Documents flow from files through chunking and validated
 embeddings into Qdrant. Semantic search retrieves ranked passages without any LLM, the RAG
 assistant answers through local Ollama with validated source IDs, and a local Streamlit app
-exposes both. Evaluation and benchmarks are scheduled in later approved phases. See
+exposes both. Evaluation and benchmarks run on a labeled fictional dataset. See
 [PLANS.md](PLANS.md) for the architecture, acceptance criteria, and progress.
 
 ## Setup
@@ -161,6 +161,20 @@ Uploads accept PDF, Markdown, and TXT up to 20 MB. Each file is parsed before it
 under a generated name in the ignored `data/uploads/` folder. Uploads use a separate namespace,
 so search finds them and `--prune-missing` never touches them. Removing an upload is not
 available yet, in the UI or the CLI.
+
+## Evaluation and benchmarks
+
+```bash
+uv run --locked python scripts/evaluate.py --mode retrieval
+uv run --locked python scripts/evaluate.py --mode rag
+uv run --locked python scripts/benchmark.py --points 10000 --queries 100 --seed 42 --top-k 10
+```
+
+On 25 labeled fictional questions: Hit Rate@5 100%, Recall@5 100%, MRR@5 0.912, citation validity
+26 of 26, and refusals 5 of 5 with none wrongful. Correctness is 20 fully supported and 5 partial
+of 25, as scored by the implementing agent rather than a human reviewer. In the synthetic benchmark
+HNSW did not beat exact search usefully, and random vectors say little about real text. See
+[evaluation](docs/evaluation.md) for method, results, and limits.
 
 ## Checks
 

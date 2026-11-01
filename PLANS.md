@@ -1,7 +1,7 @@
 # PLANS.md — RAG Document Search Pipeline
 
 > Phase 0 architecture and implementation roadmap, researched **2026-10-31** and approved by the user in the subsequent review.
-> **Phase 1 execution is authorized** by the user's “Begin” response to the Phase 1 scope review. Phases 2 through 7 were authorized by the user on 2026-11-01. Stop after Phase 7 verification; Phases 8–9 require separate approval. GNU AGPL v3 has been selected under the user's delegated license choice. Specification edits remain unauthorized. The user authorized one local commit of Phases 0–6 on 2026-11-01; later commits need a new request, and pushing remains unauthorized.
+> **Phase 1 execution is authorized** by the user's “Begin” response to the Phase 1 scope review. Phases 2 through 8 were authorized by the user on 2026-11-01. Stop at the Phase 8 boundary; Phase 9 requires separate approval. GNU AGPL v3 has been selected under the user's delegated license choice. Specification edits remain unauthorized. The user authorized local commits of Phases 0–6 and Phase 7 on 2026-11-01; later commits need a new request, and pushing remains unauthorized.
 > “Verified” for Phase 0 means the planning deliverables and documentary checks are complete. It does not mean the proposed software stack has been installed, resolved into a lockfile, or tested together.
 
 ## 1. Authority, scope, and progress
@@ -27,7 +27,7 @@ Each later phase follows: restate scope, deliverables, acceptance criteria, and 
 | 5 | Semantic search | Verified | 8 paraphrases in Top-5 on real Qdrant; filters; Ollama unreachable and never imported; 301 unit and 53 integration tests; ranking weakness recorded; evidence in Section 17 |
 | 6 | RAG with Ollama | Verified | Real Qwen generation on Ollama 0.40.13: 15 reviewed questions, exact token counts, live refusal, injection, and failure statuses; 464 tests, 0 skipped; evidence in Sections 18 and 19 |
 | 7 | Streamlit application | Verified | 449 unit tests including AppTest; 23 live browser scenarios on real services; real Qdrant and Ollama outages; screenshots from the running app; evidence in Section 20 |
-| 8 | Evaluation and benchmarking | Not started | Actual quality reports and reproducible, qualified ANN/exact measurements |
+| 8 | Evaluation and benchmarking | Blocked | All measurements complete; the one open check is the required human correctness review, since scores so far are agent-reviewed; evidence in Section 21 |
 | 9 | Integration, CI/CD, and GitHub documentation | Not started | Clean setup, full workflow evidence, CI, documentation, and publication review |
 
 Statuses are `Not started`, `In progress`, `Blocked`, and `Verified`. Missing infrastructure or model artifacts must be recorded as `Blocked` or `Not run` for the affected check. Mocked tests do not substitute for required real integration acceptance. An optional benchmark can report an honest limitation, but cannot report an unmeasured speedup.
@@ -1367,3 +1367,110 @@ measurements.
 No commit was made for Phase 7, because the user's request covered committing the earlier work.
 Recommended next phase: **Phase 8 — Evaluation & Benchmarking**, only after explicit approval. It
 should also settle the chunk-size question from Section 17.
+
+## 21. Phase 8 verification log and record
+
+**Status: Blocked on one check.** Everything is implemented and measured except a requirement only
+the user can meet: correctness review by a human. The RAG scores below are from the implementing
+agent and are labeled that way. On 2026-11-01 the user said “commit and move to phase 8”. Phase 9
+remains **Not started**.
+
+Commit before this phase: `e83101e` (Phase 7). This phase was committed afterwards at the user's
+request, with its status still Blocked; see Section 22.
+
+Files created: `src/rag_pipeline/evaluation/` (`__init__.py`, `dataset.py`, `retrieval_metrics.py`,
+`rag_metrics.py`, `benchmark.py`); `scripts/evaluate.py`, `scripts/benchmark.py`;
+`data/evaluation/questions.jsonl`, `corpus_lock.json`; `tests/unit/test_retrieval_metrics.py`,
+`test_rag_metrics.py`, `test_benchmark_protocol.py`; `tests/integration/test_evaluation.py`,
+`test_benchmark_qdrant.py`; `docs/evaluation.md`. Updated `errors.py`, `docs/vector_indexing.md`,
+`README.md`, `docs/engineering_decisions.md`, and `PLANS.md`. Generated reports stay in ignored
+`artifacts/`. `dataset.py` and `benchmark.py` are small additions so protocol logic is testable.
+
+Plan corrections from real runs: Qdrant rejects `full_scan_threshold=1` (minimum 10), so 10 KB is
+used, still far below either dataset. The target of one optimizer segment was not reached: both
+runs used 2 segments, as requested settings do not force one. Server-side query time is not
+reported, because the client response does not expose it. Results were not selected: every run
+that produced a report is summarized here.
+
+### Retrieval, K=5, 20 answerable questions, 5 excluded
+
+| Chunk / overlap | Hit Rate | Recall | MRR | Top document | Paraphrased hit / MRR | Mean / p95 latency | Collection |
+|---|---|---|---|---|---|---|---|
+| 256/40 | 100% | 100% | 0.912 | 85% | 100% / 0.650 | 6.6 / 9.0 ms | Application |
+| 128/24 | 95% | 95% | 0.950 | 95% | 80% / 0.800 | 6.7 / 9.3 ms | Disposable, removed |
+| 64/12 | 95% | 95% | 0.900 | 85% | 80% / 0.600 | 6.9 / 9.0 ms | Disposable, removed |
+
+Questions not ranked first (first relevant chunk rank): 256/40 p01 at 5, p03 at 2, p04 at 3;
+128/24 p01 missed; 64/12 p01 missed, p03 at 2, p04 at 2. Passage-level recall: N/A.
+
+**Section 17 resolved: 256/40 stays.** Its early hint that 128/24 was better was incomplete. On the
+labeled set 128/24 ranks better but loses p01, the specification's own example.
+
+### RAG at 256/40, K=5
+
+| Metric | 256/40 | 128/24 |
+|---|---|---|
+| Statuses | 20 answered, 5 refused | 19 answered, 6 refused |
+| Citation validity | 26/26 | 29/29 |
+| Uncited substantive answers | 0 | 0 |
+| Correct refusals | 5/5 | 5/5 |
+| Incorrect refusals | 0/20 | **1/20**, a retrieval failure |
+| Multi-passage evidence retrieved and retained | 5/5, 5/5 | 5/5, 5/5 |
+| Generation mean / p95 | 1,992 / 2,537 ms | 1,642 / 2,696 ms |
+
+Agent review of the 256/40 run, reviewer `Claude (implementing agent)`, reviewer kind `agent`:
+20 scored 2, 5 scored 1, 0 scored 0, mean 1.8. Stage attribution: 5 generation, 0 retrieval, 0
+context omission.
+
+| Question | Score | Reason |
+|---|---|---|
+| s05 | 1 | Omits the probation and role conditions |
+| s08 | 1 | Omits the possible 3-month extension |
+| s09 | 1 | Omits the 5 paid learning days |
+| p02 | 1 | Answered only “IT” |
+| m05 | 1 | Facts correct, but the learning-budget claim comes from `training_development.md`, which was not cited |
+
+m05 is the clearest example in the project of valid citations not establishing support.
+
+### Benchmark, seed 42, 100 held-out queries, Top-10
+
+| Points | Upload | Readiness wall | Indexed | Segments | Exact mean | ef 32 recall / mean | ef 64 | ef 128 | ef 256 |
+|---|---|---|---|---|---|---|---|---|---|
+| 10,000 | 1.3 s | 1.0 s | 100% | 2 | 2.18 ms | 0.296 / 2.12 ms | 0.476 / 2.20 ms | 0.674 / 2.37 ms | 0.867 / 2.69 ms |
+| 50,000 | 5.9 s | 5.1 s | 100% | 2 | 3.89 ms | 0.085 / 2.15 ms | 0.153 / 2.44 ms | 0.265 / 2.88 ms | 0.412 / 3.89 ms |
+
+Reading: HNSW gave no useful win on this data. At 50,000 points it was up to 45% faster at 8.5%
+recall, and no faster at its best recall of 41%. Random 384-dimensional vectors are a hard case, so
+this does not estimate recall on text. Recall varying with `hnsw_ef` indicates graph use across the
+run but does not prove the path of any query. Container memory per `docker stats` went from about
+0.53 to 1.18 GiB after upload at 50,000 points, and read 0.95 GiB after indexing; it is a single
+reading of the container, not index size. Readiness wall time is bounded by 1-second polling.
+
+### Checks
+
+| Command / check | Observed result |
+|---|---|
+| Label validation against the corpus | 25 questions valid; corpus fingerprint recorded |
+| `DOCUMENTS_DIR=<edited copy> scripts/evaluate.py --mode retrieval` | Refused as stale, exit 2; real documents unchanged |
+| `scripts/evaluate.py --report ... --judgments ...` | Aggregated without new generation |
+| Temporary mutation of 16 safeguards with a passing 533-test baseline gate | All 16 caught by named tests; files restored |
+| `uv run --locked pytest` | **533 passed**, seven SWIG and two local-mode warnings |
+| `uv run --locked pytest tests/unit tests/integration` | **611 passed, 0 skipped**, with live Qdrant and Ollama |
+| `uv lock --check`; `ruff check .`; `ruff format --check .` | All passed |
+| `/collections`; `scripts/inspect_index.py` afterwards | Only `document_embeddings`; 24 points; ID digest unchanged |
+
+To finish, a human reviews `artifacts/evaluation/rag-20261101T122541Z.judgments.json`, fills in
+`reviewer` and a 0, 1, or 2 for each question, using the answers in the same-named report and the
+rubric in `docs/evaluation.md`, then runs:
+
+```bash
+uv run --locked python scripts/evaluate.py --report artifacts/evaluation/rag-20261101T122541Z.json --judgments artifacts/evaluation/rag-20261101T122541Z.judgments.json
+```
+
+**Limits:** One small fictional corpus, with questions and documents by one author. Latencies are
+single runs on an Apple M4 Pro. Refusal coverage is five questions. Whole-collection benchmarks do
+not cover filtered search. Agent scoring is not independent, and it reviewed one RAG run only;
+128/24 answers were compared by status, not scored.
+
+Nothing was pushed. The user then asked to continue to Phase 9 without completing or waiving this
+review, so this phase stays Blocked until one of those happens.
