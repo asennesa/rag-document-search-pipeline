@@ -129,5 +129,23 @@ See [ingestion and chunking](ingestion.md) for behavior and limitations.
 - Unit tests run the real `ollama` client over httpx's mock transport, exercising the wire
   format and error mapping without a server. That is not evidence about model behavior.
 
+## Application decisions (Phase 7)
+
+- `app_services.py` holds all non-UI logic, delegating to existing services. It has no
+  Streamlit import, so it is tested directly and the page stays thin.
+- `st.cache_resource` holds only the facade, keyed by settings. Questions and answers stay
+  in per-session state. Counts are read live, so nothing can go stale after ingestion.
+- Models load on first use and failures are not remembered, so the app recovers when Qdrant
+  or Ollama returns, without a restart. This was confirmed with a real Qdrant outage.
+- Generation is serialized with a lock, because this is one local model on one machine.
+- Document and model text is shown only through `st.text` and `st.code`. Those elements show
+  literal text, so stored Markdown, HTML, and scripts cannot render.
+- Uploads get a separate namespace. In the source namespace, `--prune-missing` would have
+  treated them as deleted files. Search covers both namespaces.
+- Upload names are generated from the content hash and safe characters. The browser's name
+  is never a path, so an upload cannot escape the folder or replace another document.
+- Files are validated from a hidden temporary path before being moved into place, so a
+  rejected upload leaves nothing behind.
+
 Exact observed versions, infrastructure evidence, commands, and remaining limits
 are recorded in the Phase 1 completion record in [PLANS.md](../PLANS.md).

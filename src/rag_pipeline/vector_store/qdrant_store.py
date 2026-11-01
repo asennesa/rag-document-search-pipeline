@@ -57,6 +57,19 @@ class CollectionStats:
     payload_indexes: tuple[str, ...]
 
 
+def interpret_index(stats: CollectionStats) -> str:
+    """State what the counters show, and no more than that."""
+    if not stats.indexed_vectors:
+        return (
+            "No vectors are in an HNSW index. Queries run as a full scan, which is expected "
+            "for a collection below the indexing threshold. HNSW is configured, not in use."
+        )
+    return (
+        "Some vectors are in an HNSW index, so indexed search is available. This does not "
+        "prove that any particular query used it; Qdrant plans each query separately."
+    )
+
+
 def connect_store(settings: Settings) -> "QdrantStore":
     """Create a client. check_compatibility is off because the server version is pinned."""
     api_key = settings.qdrant_api_key
@@ -277,7 +290,7 @@ class QdrantStore:
         vector: Sequence[float],
         limit: int,
         *,
-        namespace: str | None = None,
+        namespace: str | tuple[str, ...] | None = None,
         source: str | None = None,
         exact: bool = False,
     ) -> list[SearchHit]:
@@ -285,7 +298,13 @@ class QdrantStore:
         if len(vector) != self._dimensions:
             raise VectorStoreError(f"Query vector has {len(vector)} dimensions")
         conditions = []
-        if namespace is not None:
+        if isinstance(namespace, tuple):
+            conditions.append(
+                models.FieldCondition(
+                    key="source_namespace", match=models.MatchAny(any=list(namespace))
+                )
+            )
+        elif namespace is not None:
             conditions.append(_match("source_namespace", namespace))
         if source is not None:
             conditions.append(_match("source", source))

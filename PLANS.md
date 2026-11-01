@@ -1,7 +1,7 @@
 # PLANS.md — RAG Document Search Pipeline
 
 > Phase 0 architecture and implementation roadmap, researched **2026-10-31** and approved by the user in the subsequent review.
-> **Phase 1 execution is authorized** by the user's “Begin” response to the Phase 1 scope review. Phases 2 through 6 were authorized by the user on 2026-11-01. Stop after Phase 6 verification; Phases 7–9 require separate approval. GNU AGPL v3 has been selected under the user's delegated license choice. Specification edits and Git commits remain unauthorized.
+> **Phase 1 execution is authorized** by the user's “Begin” response to the Phase 1 scope review. Phases 2 through 7 were authorized by the user on 2026-11-01. Stop after Phase 7 verification; Phases 8–9 require separate approval. GNU AGPL v3 has been selected under the user's delegated license choice. Specification edits remain unauthorized. The user authorized one local commit of Phases 0–6 on 2026-11-01; later commits need a new request, and pushing remains unauthorized.
 > “Verified” for Phase 0 means the planning deliverables and documentary checks are complete. It does not mean the proposed software stack has been installed, resolved into a lockfile, or tested together.
 
 ## 1. Authority, scope, and progress
@@ -26,7 +26,7 @@ Each later phase follows: restate scope, deliverables, acceptance criteria, and 
 | 4 | Qdrant storage and HNSW indexing | Verified | 269 unit and 38 integration tests against real Qdrant 1.20.0; restart with identical ID digest; recovery, lock, and 16 mutation checks; evidence in Section 16 |
 | 5 | Semantic search | Verified | 8 paraphrases in Top-5 on real Qdrant; filters; Ollama unreachable and never imported; 301 unit and 53 integration tests; ranking weakness recorded; evidence in Section 17 |
 | 6 | RAG with Ollama | Verified | Real Qwen generation on Ollama 0.40.13: 15 reviewed questions, exact token counts, live refusal, injection, and failure statuses; 464 tests, 0 skipped; evidence in Sections 18 and 19 |
-| 7 | Streamlit application | Not started | AppTest checks and live verification of all three sections |
+| 7 | Streamlit application | Verified | 449 unit tests including AppTest; 23 live browser scenarios on real services; real Qdrant and Ollama outages; screenshots from the running app; evidence in Section 20 |
 | 8 | Evaluation and benchmarking | Not started | Actual quality reports and reproducible, qualified ANN/exact measurements |
 | 9 | Integration, CI/CD, and GitHub documentation | Not started | Clean setup, full workflow evidence, CI, documentation, and publication review |
 
@@ -1288,3 +1288,82 @@ stands: answers were good here partly because 4,096 tokens leave room for severa
 No local Git commit or push: the user said no commits yet, so all Phase 0–6 work remains
 uncommitted. Recommended next phase: **Phase 7 — Streamlit Application**, only after explicit
 approval.
+
+## 20. Phase 7 verification log and completion record
+
+**Status: Verified** on macOS ARM64, 2026-11-01, in headless Google Chrome against real Qdrant and
+Ollama. The user said “commit and go phase 7”. Phase 8 remains **Not started**.
+
+Commit before this phase: `37bbab3` on branch `feature/rag-pipeline-foundation`, holding Phases
+0–6. It was made on a branch rather than `main` and was not pushed. Before committing, staged
+content was audited for forbidden paths, secrets, and large files, and the absolute home path in
+this file was replaced with `~`.
+
+Files created: `app/streamlit_app.py`, `.streamlit/config.toml`, `src/rag_pipeline/app_services.py`,
+`tests/unit/test_streamlit_app.py`, `tests/unit/test_app_services.py`, and three images in
+`docs/images/`. Updated `.gitignore`, `config.py`, `vector_store/qdrant_store.py`,
+`retrieval/semantic_search.py`, `rag/rag_service.py`, `scripts/inspect_index.py`,
+`tests/unit/test_semantic_search.py`, `README.md`, `docs/engineering_decisions.md`, and `PLANS.md`.
+
+Roadmap adjustment: `app_services.py` is a larger service layer than “small factory additions”,
+so the page itself holds no pipeline logic. Uploads use a derived `<namespace>-uploads` namespace
+because they would otherwise look deleted to `--prune-missing`. `interpret_index` moved from the
+inspection script into the store so the CLI and UI say the same thing. The Deploy toolbar item is
+hidden, since the app is local only.
+
+### Live scenarios
+
+Run with Playwright in a throwaway environment outside the project, using the installed Chrome.
+It was not added as a dependency. Scenarios used a disposable collection and uploads folder,
+started from empty, and were removed afterwards. Separate app instances covered Ollama outage and
+the missing model.
+
+| Scenario | Result |
+|---|---|
+| Three tabs render; page binds only to `127.0.0.1` (`lsof`) | Passed |
+| Empty collection guidance; search before ingestion explains what to do | Passed |
+| Sample ingestion from empty | Synced 12, 24 vectors; success shown only after completion |
+| Counts fresh right after ingestion; second ingestion | 12 documents and 24 chunks; unchanged 12 |
+| Search with results; source filter set to `password_security.md` | Correct, only that source returned |
+| RAG multi-passage answer | `answered`, 150 EUR and 60 EUR, cited `business_travel_policy.md` and `travel_expenses.md`, answer above evidence |
+| Unanswerable question | Refusal; not shown as validated |
+| Upload `ferry_policy.md` | Stored as `9dde2d9b3026-ferry_policy.md`, count fresh, answer “41 EUR” citing the upload |
+| Corrupt `fake.pdf` | “PDF cannot be parsed”; nothing stored |
+| Upload with `<img onerror>`, `<script>`, and a `javascript:` link | Shown as literal text in search and RAG; not executed; no such elements created |
+| Inspection fields | Model, 384, Cosine, indexed vectors, HNSW, full-scan statement all present |
+| Ollama unreachable | `ollama_unavailable`, instruction, passages kept; search still works |
+| Missing model | `model_missing` with a pull instruction; nothing pulled |
+| Real `docker compose stop qdrant` | Actionable errors in Search and Inspection |
+| `docker compose start qdrant` | App recovered with no restart |
+| Browser JavaScript errors; server tracebacks | None |
+
+The live scenarios were not green the first time, and only the outcomes above count. Invalid
+attempts: variables not word-split by zsh, twice (one showed the app's real “Configuration is
+invalid” page); a wait that matched the intro text; and a wait that read the previous answer while
+a request ran, plus a check inside a collapsed expander. The last two caused 2 of 23 failures in
+the main run, and those scenarios then passed in a focused retest with correct waiting, not in one
+uninterrupted run. Live outage checks were run separately from that main run.
+
+| Command / check | Observed result |
+|---|---|
+| `uv run --locked pytest tests/unit/test_streamlit_app.py tests/unit/test_app_services.py` | **56 passed** |
+| `uv run --locked pytest` | **449 passed** |
+| `uv run --locked pytest tests/unit tests/integration` | **522 passed, 0 skipped**, with live Qdrant and Ollama |
+| `uv lock --check`; `ruff check .`; `ruff format --check .` | All passed |
+| Mutation of 12 UI and upload safeguards, passing 447-test baseline | 11 caught; **1 survived**: nothing automated proved search covers uploads |
+| Two tests added; mutation repeated, with a 449-test baseline | Both namespace mutations caught; files restored |
+| Final screenshots | Retaken on `document_embeddings` from the running app; no test names visible |
+| `scripts/inspect_index.py` before and after the final app run | 24 points, ID digest unchanged |
+| `/collections` afterwards | Only `document_embeddings`; `data/` holds only `sample_docs`; no Streamlit process left |
+
+**Limits:** Only macOS ARM64 and Chrome were tested, in headless mode. Two sessions at once were
+tested only through the lock and load unit tests, not with real concurrent users. There is no
+upload removal in the UI, and `--delete-source` covers only the sample namespace. Uploads with
+the same content but a new name become separate documents. The app has no authentication and is
+for trusted local use. Uploaded PDFs are parsed in-process, so a malicious file remains a risk to
+the native parser. Accessibility was not audited. Search and answer timings on screen are single
+measurements.
+
+No commit was made for Phase 7, because the user's request covered committing the earlier work.
+Recommended next phase: **Phase 8 — Evaluation & Benchmarking**, only after explicit approval. It
+should also settle the chunk-size question from Section 17.

@@ -69,6 +69,11 @@ class Settings(BaseSettings):
     extracted_max_characters: PositiveInt = 2_000_000
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
+    @property
+    def uploads_namespace(self) -> str:
+        """Kept apart from the source namespace, so pruning can never see uploads."""
+        return f"{self.source_namespace}-uploads"
+
     @field_validator("qdrant_api_key", mode="before")
     @classmethod
     def empty_key_is_absent(cls, value: object) -> object:

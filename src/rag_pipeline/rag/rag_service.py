@@ -137,9 +137,9 @@ class RAGService:
         )
 
 
-def load_rag_service(settings: Settings) -> RAGService:
+def load_rag_service(settings: Settings, retriever: Retriever | None = None) -> RAGService:
     """Uses the search factory, so RAG shares its collection checks. Contacts no LLM yet."""
-    retriever = load_search_service(settings)
+    retriever = retriever or load_search_service(settings)
     tokenizer = GenerationTokenizer(resolve_generation_tokenizer(settings))
     builder = ContextBuilder(
         tokenizer,

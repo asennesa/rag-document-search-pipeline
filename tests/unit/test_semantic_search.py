@@ -338,6 +338,42 @@ def test_collection_from_another_vector_space_is_refused(monkeypatch, forbid_mod
         load_search_service(Settings())
 
 
+def test_search_service_covers_samples_and_uploads(monkeypatch):
+    class SearchableStore(FactoryStore):
+        namespace = None
+
+        def search(self, vector, limit, *, namespace=None, source=None, exact=False):
+            self.namespace = namespace
+            return []
+
+    store = SearchableStore()
+    monkeypatch.setattr(semantic_search, "embedding_assets_id", lambda _settings: "assets")
+    monkeypatch.setattr(semantic_search, "connect_store", lambda _settings: store)
+    load_search_service(Settings(), FakeEmbedder()).search("Question")
+    assert store.namespace == ("sample-policies", "sample-policies-uploads")
+
+
+def test_several_namespaces_match_any_of_them_and_nothing_else():
+    client = CapturingClient()
+    store = QdrantStore(client, Settings(), sleep=lambda _: None)
+    store.ensure_collection()
+    unit = [0.0] * 384
+    unit[0] = 1.0
+
+    def stored(namespace, source):
+        item = payload(0, source).model_copy(
+            update={
+                "source_namespace": namespace,
+                "chunk_id": str(uuid.uuid5(uuid.NAMESPACE_DNS, namespace)),
+            }
+        )
+        return item, unit
+
+    store.upsert([stored("samples", "a.md"), stored("uploads", "b.md"), stored("other", "c.md")])
+    hits = store.search(unit, 5, namespace=("samples", "uploads"))
+    assert {hit.payload.source for hit in hits} == {"a.md", "b.md"}
+
+
 def test_importing_search_loads_no_generation_client():
     code = (
         "import sys; import rag_pipeline.retrieval.semantic_search; "

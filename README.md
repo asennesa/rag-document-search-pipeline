@@ -3,10 +3,10 @@
 A local Python portfolio project for explicit document embeddings, Qdrant vector
 indexing, semantic retrieval, and Ollama generation with source citations.
 
-**Current scope: Phases 1-6.** Documents flow from files through chunking and validated
-embeddings into Qdrant. Semantic search retrieves ranked passages without any LLM, and the
-RAG assistant answers through local Ollama with validated source IDs. Streamlit screens are
-scheduled in a later approved phase. See
+**Current scope: Phases 1-7.** Documents flow from files through chunking and validated
+embeddings into Qdrant. Semantic search retrieves ranked passages without any LLM, the RAG
+assistant answers through local Ollama with validated source IDs, and a local Streamlit app
+exposes both. Evaluation and benchmarks are scheduled in later approved phases. See
 [PLANS.md](PLANS.md) for the architecture, acceptance criteria, and progress.
 
 ## Setup
@@ -133,6 +133,34 @@ uv run --locked python scripts/ask.py "How many days of annual leave do employee
 
 If Ollama is down, the command reports `ollama_unavailable` and still shows the retrieved
 passages. Validated citations show that a cited source exists, not that the answer is true.
+
+## Streamlit application
+
+```bash
+uv run --locked streamlit run app/streamlit_app.py
+```
+
+The app opens at `http://127.0.0.1:8501` and binds to localhost only. It is a trusted
+single-user tool with no authentication, so do not expose it publicly.
+
+- **Semantic Search** works without Ollama.
+- **RAG Assistant** shows the generated answer apart from the retrieved passages. If Ollama
+  is down, it says so and still shows the passages.
+- **Pipeline Inspection** ingests the samples, accepts uploads, and shows live counts and
+  index state.
+
+![Semantic Search](docs/images/semantic_search.png)
+
+![RAG Assistant](docs/images/rag_assistant.png)
+
+![Pipeline Inspection](docs/images/pipeline_inspection.png)
+
+These screenshots are from the running application with fictional data.
+
+Uploads accept PDF, Markdown, and TXT up to 20 MB. Each file is parsed before it is stored
+under a generated name in the ignored `data/uploads/` folder. Uploads use a separate namespace,
+so search finds them and `--prune-missing` never touches them. Removing an upload is not
+available yet, in the UI or the CLI.
 
 ## Checks
 

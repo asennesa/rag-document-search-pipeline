@@ -9,6 +9,7 @@ dist/
 *.egg-info/
 .env
 .env.*
+.streamlit/secrets.toml
 !.env.example
 .cache/
 .runtime/

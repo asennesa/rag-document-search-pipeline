@@ -5,19 +5,7 @@ import sys
 
 from rag_pipeline.config import Settings
 from rag_pipeline.errors import PipelineError
-from rag_pipeline.vector_store.qdrant_store import CollectionStats, connect_store
-
-
-def interpret(stats: CollectionStats) -> str:
-    if not stats.indexed_vectors:
-        return (
-            "No vectors are in an HNSW index. Queries run as a full scan, which is expected "
-            "for a collection below the indexing threshold. HNSW is configured, not in use."
-        )
-    return (
-        "Some vectors are in an HNSW index, so indexed search is available. This does not "
-        "prove that any particular query used it; Qdrant plans each query separately."
-    )
+from rag_pipeline.vector_store.qdrant_store import connect_store, interpret_index
 
 
 def main() -> int:
@@ -52,7 +40,7 @@ def main() -> int:
     print(f"Indexing threshold: {shown(stats.indexing_threshold_kb)} KB of vectors")
     print(f"Payload indexes: {', '.join(stats.payload_indexes) or 'none'}")
     print(f"Point ID digest: {hashlib.sha256(chr(10).join(ids).encode()).hexdigest()}")
-    print(f"Interpretation: {interpret(stats)}")
+    print(f"Interpretation: {interpret_index(stats)}")
     return 0
 
 

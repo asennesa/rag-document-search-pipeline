@@ -27,7 +27,7 @@ class PassageStore(Protocol):
         vector: Sequence[float],
         limit: int,
         *,
-        namespace: str | None = None,
+        namespace: str | tuple[str, ...] | None = None,
         source: str | None = None,
         exact: bool = False,
     ) -> list[SearchHit]: ...
@@ -39,7 +39,7 @@ class SemanticSearchService:
         embedder: QueryEmbedder,
         store: PassageStore,
         *,
-        namespace: str,
+        namespace: str | tuple[str, ...],
         default_top_k: int,
         max_top_k: int,
     ) -> None:
@@ -120,7 +120,9 @@ def _to_passage(hit: SearchHit) -> RetrievedPassage:
     )
 
 
-def load_search_service(settings: Settings) -> SemanticSearchService:
+def load_search_service(
+    settings: Settings, embedder: QueryEmbedder | None = None
+) -> SemanticSearchService:
     """Check the collection first: it fails faster than loading a model, and a query in
     the wrong vector space returns plausible nonsense rather than an error."""
     store = connect_store(settings)
@@ -132,9 +134,9 @@ def load_search_service(settings: Settings) -> SemanticSearchService:
     store.validate_collection()
     store.validate_contents(processing_fingerprint(settings, embedding_assets_id(settings)))
     return SemanticSearchService(
-        load_embedding_service(settings),
+        embedder or load_embedding_service(settings),
         store,
-        namespace=settings.source_namespace,
+        namespace=(settings.source_namespace, settings.uploads_namespace),
         default_top_k=settings.search_top_k,
         max_top_k=settings.search_max_top_k,
     )
