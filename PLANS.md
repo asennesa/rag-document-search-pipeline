@@ -1,7 +1,7 @@
 # PLANS.md — RAG Document Search Pipeline
 
 > Phase 0 architecture and implementation roadmap, researched **2026-10-31** and approved by the user in the subsequent review.
-> **Phase 1 execution is authorized** by the user's “Begin” response to the Phase 1 scope review. Phases 2 through 9 were authorized by the user on 2026-11-01. All nine phases are implemented; Phase 9 has one open check, listed in Section 22. GNU AGPL v3 has been selected under the user's delegated license choice. Specification edits remain unauthorized. The user authorized local commits of Phases 0–6, 7, and 8 on 2026-11-01; later commits need a new request, and pushing remains unauthorized.
+> **Phase 1 execution is authorized** by the user's “Begin” response to the Phase 1 scope review. Phases 2 through 9 were authorized by the user on 2026-11-01. All nine phases are implemented and verified; see Section 24. GNU AGPL v3 has been selected under the user's delegated license choice. Specification edits remain unauthorized. The user authorized commits through Phase 9 and a push of `feature/rag-pipeline-foundation` on 2026-11-01; later commits or pushes need a new request.
 > “Verified” for Phase 0 means the planning deliverables and documentary checks are complete. It does not mean the proposed software stack has been installed, resolved into a lockfile, or tested together.
 
 ## 1. Authority, scope, and progress
@@ -28,7 +28,7 @@ Each later phase follows: restate scope, deliverables, acceptance criteria, and 
 | 6 | RAG with Ollama | Verified | Real Qwen generation on Ollama 0.40.13: 15 reviewed questions, exact token counts, live refusal, injection, and failure statuses; 464 tests, 0 skipped; evidence in Sections 18 and 19 |
 | 7 | Streamlit application | Verified | 449 unit tests including AppTest; 23 live browser scenarios on real services; real Qdrant and Ollama outages; screenshots from the running app; evidence in Section 20 |
 | 8 | Evaluation and benchmarking | Verified | All measurements complete; correctness scored by the agent under the owner's delegation, replacing human review, and labeled that way; evidence in Sections 21 and 23 |
-| 9 | Integration, CI/CD, and GitHub documentation | Blocked | Clean-copy reproduction, 635 tests, Ubuntu 24.04 CI steps on two architectures, documentation, and publication review complete; a real GitHub Actions run needs an authorized push; evidence in Section 22 |
+| 9 | Integration, CI/CD, and GitHub documentation | Verified | Clean-copy reproduction, 635 tests locally, documentation and publication review, and a passing GitHub Actions run; evidence in Sections 22 and 24 |
 
 Statuses are `Not started`, `In progress`, `Blocked`, and `Verified`. Missing infrastructure or model artifacts must be recorded as `Blocked` or `Not run` for the affected check. Mocked tests do not substitute for required real integration acceptance. An optional benchmark can report an honest limitation, but cannot report an unmeasured speedup.
 
@@ -1542,7 +1542,7 @@ and the only change touching app paths was the CLI wrapper, which the app does n
 | Semantic Search; RAG uses passages; citations validated; Streamlit supports both modes | Verified |
 | Evaluation runs; benchmark works and reports its limits | Verified; correctness agent-reviewed by delegation (Section 23) |
 | Tests and Ruff pass | Verified |
-| GitHub Actions configured | Configured and checked locally; **remote run Not run** |
+| GitHub Actions configured | Verified by a real run; see Section 24 |
 | README documents verified commands | Verified |
 | Suitable for public GitHub publication | Local review passed; the user decides whether to publish |
 
@@ -1579,3 +1579,18 @@ equally and “one-time” is material.
 | Mean | 1.8 | **1.72** |
 
 This revision supersedes the first-pass scores in Section 21. The 128/24 run remains unscored.
+
+## 24. Remote CI and project completion
+
+On 2026-11-01 the user said “yes commit and push”. Commit `e596260` was pushed to
+`origin/feature/rag-pipeline-foundation`; `main` was not changed and no pull request was opened.
+
+GitHub Actions run `41310872630` on `e596260` completed with conclusion `success`, read from the GitHub
+API. Job “Lint and unit tests” passed every step: locked sync, lock check, Ruff lint and format, pytest.
+Job “Qdrant integration (synthetic vectors, no models)” passed with the digest-pinned service.
+https://github.com/asennesa/rag-document-search-pipeline/actions/runs/41310872630
+
+All nine phases are now Verified, on the terms recorded for each. Remaining qualifications: correctness
+is agent-reviewed by delegation (Section 23), model-dependent tests are local only and ran only on macOS
+ARM64 (`docs/testing.md`), and the Section 11 specification edits remain unapplied. Merging into `main`
+is the user's decision.
